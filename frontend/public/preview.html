@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CrowdShield Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+:root{
+  --bg:#05080f;--surface:#090d18;--card:#0c1120;--border:#182336;--borderHi:#243550;
+  --text:#deeeff;--sub:#8aaccc;--muted:#3a5270;
+  --safe:#00df9a;--warn:#ffaa00;--crit:#ff2255;--evac:#bb44ff;--info:#1188ff;--accent:#00ccff;--user:#ffcc44;
+  --nav:rgba(5,8,15,0.94);--inp:#060a14;
+  --sh:0 8px 48px rgba(0,0,0,.65);--shsm:0 2px 16px rgba(0,0,0,.45);--dot:#121f33;
+}
+.lm{
+  --bg:#f2efe8;--surface:#f9f7f2;--card:#ffffff;--border:#e0d8cc;--borderHi:#c4b8a8;
+  --text:#181520;--sub:#403c50;--muted:#9090a0;
+  --safe:#007744;--warn:#aa5500;--crit:#cc0033;--evac:#6622bb;--info:#0044bb;--accent:#005baa;--user:#885500;
+  --nav:rgba(242,239,232,0.96);--inp:#ece8e0;
+  --sh:0 4px 24px rgba(24,21,32,.10);--shsm:0 1px 8px rgba(24,21,32,.07);--dot:#ccc8bc;
+}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+  transition:background .4s,color .4s;
+  background-image:radial-gradient(var(--dot) 1px,transparent 1px);
+  background-size:24px 24px;background-attachment:fixed;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes ping{0%{transform:scale(1);opacity:.9}70%{transform:scale(2.5);opacity:0}100%{opacity:0}}
+@keyframes scan{0%{top:-60px}100%{top:110vh}}
+@keyframes cardIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulseRing{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--crit) 40%,transparent)}50%{box-shadow:0 0 0 8px transparent}}
+
+.scan-line::after{content:'';position:fixed;left:0;right:0;height:60px;
+  background:linear-gradient(transparent,rgba(0,204,255,.025),transparent);
+  animation:scan 7s linear infinite;pointer-events:none;z-index:9998;}
+
+.fu{animation:fadeUp .42s cubic-bezier(.22,1,.36,1) both;}
+.ci{animation:cardIn .45s cubic-bezier(.22,1,.36,1) both;}
+.blink{animation:blink 1.8s ease-in-out infinite;}
+
+/* Header */
+header{background:var(--nav);backdrop-filter:blur(20px);border-bottom:1.5px solid var(--border);
+  height:62px;padding:0 26px;display:flex;align-items:center;gap:18px;
+  position:sticky;top:0;z-index:1000;
+  box-shadow:0 1px 0 var(--border),0 4px 24px rgba(0,0,0,.3);
+  transition:background .4s,border-color .4s;}
+.logo{display:flex;align-items:center;gap:11px;flex-shrink:0;}
+.logo-ico{width:38px;height:38px;border-radius:11px;
+  background:linear-gradient(135deg,var(--accent),var(--safe));
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+  box-shadow:0 0 20px color-mix(in srgb,var(--accent) 35%,transparent);
+  transition:box-shadow .4s;}
+.logo-main{font-weight:900;font-size:18px;letter-spacing:2px;color:var(--text);line-height:1;text-transform:uppercase;}
+.logo-main span{color:var(--accent);}
+.logo-sub{font-size:9px;color:var(--muted);letter-spacing:3px;font-weight:600;text-transform:uppercase;}
+.div{width:1px;height:30px;background:var(--border);flex-shrink:0;}
+nav{display:flex;gap:2px;flex:1;overflow-x:auto;}
+.nb{background:transparent;border:1.5px solid transparent;color:var(--muted);
+  border-radius:10px;padding:6px 14px;cursor:pointer;font-size:11px;font-weight:700;
+  font-family:'Outfit',sans-serif;letter-spacing:1.2px;display:flex;align-items:center;
+  gap:6px;position:relative;white-space:nowrap;text-transform:uppercase;transition:all .18s;}
+.nb:hover{transform:translateY(-1px);color:var(--sub);}
+.nb.on{background:color-mix(in srgb,var(--accent) 15%,transparent);
+  border-color:color-mix(in srgb,var(--accent) 55%,transparent);color:var(--accent);
+  box-shadow:0 0 14px color-mix(in srgb,var(--accent) 22%,transparent);}
+.nbadge{background:var(--crit);color:#fff;border-radius:99px;padding:0 5px;font-size:8px;
+  font-weight:800;position:absolute;top:-5px;right:-4px;min-width:16px;text-align:center;
+  font-family:'JetBrains Mono',monospace;animation:blink 1.8s ease-in-out infinite;}
+.nbadge.g{background:var(--safe);color:#000;}
+.hr{display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.clk{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--safe);display:inline-block;box-shadow:0 0 10px var(--safe);}
+.live-lbl{font-size:10px;color:var(--safe);font-weight:700;letter-spacing:2.5px;text-transform:uppercase;}
+
+/* Toggle */
+.tog{position:relative;width:58px;height:30px;border-radius:15px;cursor:pointer;border:none;outline:none;flex-shrink:0;transition:all .35s;}
+.dk .tog{background:linear-gradient(135deg,#0c1828,#1c2f48);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--accent) 44%,transparent),0 0 14px color-mix(in srgb,var(--accent) 22%,transparent);}
+.lm .tog{background:linear-gradient(135deg,#e0dbd0,#f2efe8);box-shadow:inset 0 0 0 1.5px var(--border);}
+.knob{position:absolute;top:4px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;
+  transition:left .35s cubic-bezier(.34,1.56,.64,1),background .35s,box-shadow .35s;}
+.dk .knob{left:32px;background:radial-gradient(circle at 35% 35%,#88ddff,var(--accent));box-shadow:0 0 12px color-mix(in srgb,var(--accent) 80%,transparent);}
+.lm .knob{left:4px;background:radial-gradient(circle at 35% 35%,#ffe888,#ffaa00);box-shadow:0 2px 8px rgba(255,170,0,.55);}
+
+main{padding:26px 28px;max-width:1500px;margin:0 auto;}
+.tab{display:none;}.tab.on{display:block;}
+
+/* Shared */
+.sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;}
+.sh h1{font-weight:900;font-size:28px;color:var(--text);letter-spacing:-.5px;line-height:1.1;}
+.sh h1 span{color:var(--accent);}
+.sh-sm h1{font-size:20px;margin-bottom:14px;}
+.fb{display:flex;justify-content:space-between;align-items:center;}
+.fg{display:flex;align-items:center;gap:8px;}
+.col{display:flex;flex-direction:column;gap:10px;}
+.g2{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;}
+.g3{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;}
+.hint{border:1.5px dashed color-mix(in srgb,var(--accent) 44%,transparent);
+  background:color-mix(in srgb,var(--accent) 8%,transparent);border-radius:14px;
+  padding:13px 18px;font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:22px;}
+
+.btn{border:none;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:700;border-radius:10px;
+  padding:8px 16px;font-size:12px;letter-spacing:.3px;transition:all .16s;display:inline-flex;align-items:center;gap:6px;}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.12);}
+.btn:active{transform:scale(.97);}
+.ba{background:color-mix(in srgb,var(--accent) 15%,transparent);border:1.5px solid color-mix(in srgb,var(--accent) 50%,transparent);color:var(--accent);}
+.bw{background:color-mix(in srgb,var(--warn) 15%,transparent);border:1.5px solid color-mix(in srgb,var(--warn) 50%,transparent);color:var(--warn);}
+.bc{background:color-mix(in srgb,var(--crit) 15%,transparent);border:1.5px solid color-mix(in srgb,var(--crit) 50%,transparent);color:var(--crit);}
+.bs{background:color-mix(in srgb,var(--safe) 15%,transparent);border:1.5px solid color-mix(in srgb,var(--safe) 50%,transparent);color:var(--safe);}
+.bm{background:color-mix(in srgb,var(--muted) 12%,transparent);border:1.5px solid color-mix(in srgb,var(--muted) 30%,transparent);color:var(--muted);}
+.be{background:color-mix(in srgb,var(--evac) 15%,transparent);border:1.5px solid color-mix(in srgb,var(--evac) 50%,transparent);color:var(--evac);}
+
+.badge{border-radius:20px;padding:3px 11px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:1.5px;white-space:nowrap;}
+.tag{border-radius:6px;padding:3px 9px;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:.6px;}
+.tagsm{padding:1px 7px;font-size:9px;}
+
+/* Density bar */
+.dbar{border-radius:99px;overflow:hidden;background:var(--inp);}
+.dfill{height:100%;border-radius:99px;transition:width .8s cubic-bezier(.4,0,.2,1);}
+
+/* Stat cards */
+.sc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:14px;margin-bottom:30px;}
+.sc{background:var(--card);border-radius:16px;padding:18px 20px;position:relative;overflow:hidden;
+  box-shadow:var(--shsm);transition:transform .2s,box-shadow .2s,background .4s,border-color .4s;
+  border:1.5px solid transparent;}
+.sc:hover{transform:translateY(-4px);box-shadow:var(--sh);}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.sc-glow{position:absolute;top:-22px;right:-22px;width:90px;height:90px;border-radius:50%;pointer-events:none;}
+.sc-ico{font-size:24px;margin-bottom:10px;line-height:1;}
+.sc-val{font-size:28px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;letter-spacing:-1px;}
+.sc-lbl{color:var(--muted);font-size:10px;margin-top:7px;text-transform:uppercase;letter-spacing:2px;font-weight:600;}
+.sc-sub{color:var(--muted);font-size:10px;margin-top:3px;opacity:.7;}
+
+/* Strip */
+.strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+.sc2{background:var(--card);border-radius:12px;padding:10px 14px;display:flex;
+  justify-content:space-between;align-items:center;box-shadow:var(--shsm);
+  border:1.5px solid transparent;border-top:3px solid transparent;transition:background .4s;}
+.sc2-l{color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.8px;}
+.sc2-v{font-weight:900;font-size:20px;font-family:'JetBrains Mono',monospace;letter-spacing:-1px;}
+
+/* Map */
+.map-wrap{display:grid;grid-template-columns:1fr 295px;gap:20px;}
+.map-box{border-radius:16px;overflow:hidden;border:1.5px solid var(--border);
+  position:relative;box-shadow:var(--sh);height:calc(100vh - 295px);min-height:480px;
+  background:var(--surface);transition:border-color .4s,background .4s;}
+.map-grid-bg{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:60px 60px;opacity:.35;}
+.map-draw-hint{position:absolute;top:12px;left:12px;z-index:10;background:var(--card);
+  border:1.5px solid color-mix(in srgb,var(--accent) 55%,transparent);border-radius:10px;
+  padding:6px 14px;display:flex;gap:8px;align-items:center;box-shadow:var(--shsm);}
+.zcirc{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;}
+.zlbl{position:absolute;background:var(--card);border-radius:8px;padding:4px 10px;font-size:11px;
+  font-weight:700;white-space:nowrap;box-shadow:var(--shsm);border:1px solid var(--border);pointer-events:none;}
+.udot{position:absolute;width:12px;height:12px;border-radius:50%;border:2px solid #fff;cursor:pointer;}
+.udot::after{content:'';position:absolute;inset:-5px;border-radius:50%;animation:ping 2s ease-out infinite;pointer-events:none;}
+.sidebar{display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 295px);overflow-y:auto;padding-right:2px;}
+.sb-hdr{font-size:9px;color:var(--muted);letter-spacing:2.5px;font-weight:600;padding-bottom:8px;border-bottom:1.5px solid var(--border);text-transform:uppercase;}
+
+/* Zone card */
+.zc{background:var(--card);border-radius:16px;padding:16px 16px 14px;box-shadow:var(--shsm);
+  transition:transform .2s,box-shadow .2s,background .4s;}
+.zc:hover{transform:translateY(-4px);box-shadow:var(--sh);}
+
+/* GPS card */
+.gpsc{background:var(--card);border-radius:16px;padding:18px;box-shadow:var(--shsm);
+  border-top:3px solid color-mix(in srgb,var(--user) 55%,transparent);
+  transition:transform .2s,background .4s;}
+.gpsc:hover{transform:translateY(-4px);}
+.gps-data{background:var(--inp);border-radius:10px;padding:9px 12px;font-family:'JetBrains Mono',monospace;
+  font-size:10px;color:var(--muted);line-height:1.9;margin-top:12px;transition:background .4s;}
+.gdr{display:flex;justify-content:space-between;}
+
+/* Camera card */
+.camc{background:var(--card);border-radius:16px;overflow:hidden;box-shadow:var(--shsm);transition:transform .2s,background .4s;}
+.camc:hover{transform:translateY(-4px);}
+.cam-prev{height:160px;background:var(--surface);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+.cam-grid-bg{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:30px 30px;opacity:.5;}
+.cam-ov{position:absolute;bottom:0;left:0;right:0;padding:8px 12px;background:linear-gradient(transparent,rgba(0,0,0,.72));display:flex;justify-content:space-between;align-items:flex-end;}
+
+/* Incident / Alert rows */
+.ir{background:var(--card);border-radius:14px;padding:15px 18px;display:flex;
+  justify-content:space-between;align-items:center;gap:16px;box-shadow:var(--shsm);
+  transition:transform .2s,background .4s;}
+.ir:hover{transform:translateY(-2px);}
+.ar{background:var(--card);border-radius:14px;padding:13px 18px;display:flex;
+  justify-content:space-between;align-items:center;gap:16px;box-shadow:var(--shsm);
+  transition:background .4s;}
+
+/* User pill */
+.up{background:var(--card);border-radius:12px;padding:9px 13px;box-shadow:var(--shsm);transition:background .4s;}
+</style>
+</head>
+<body class="dk scan-line">
+
+<header>
+  <div class="logo">
+    <div class="logo-ico">🛡</div>
+    <div>
+      <div class="logo-main">CROWD<span>SHIELD</span></div>
+      <div class="logo-sub">Safety Monitoring</div>
+    </div>
+  </div>
+  <div class="div"></div>
+  <nav>
+    <button class="nb on" onclick="sw('map',this)"><span>◉</span>LIVE MAP</button>
+    <button class="nb" onclick="sw('dash',this)"><span>⬡</span>DASHBOARD</button>
+    <button class="nb" onclick="sw('cam',this)"><span>📷</span>CAMERAS<span class="nbadge g">4</span></button>
+    <button class="nb" onclick="sw('gps',this)"><span>📡</span>TRACKING<span class="nbadge g">3</span></button>
+    <button class="nb" onclick="sw('zones',this)"><span>◈</span>ZONES</button>
+    <button class="nb" onclick="sw('inc',this)"><span>⚑</span>INCIDENTS</button>
+    <button class="nb" onclick="sw('alrt',this)"><span>◎</span>ALERTS<span class="nbadge">2</span></button>
+  </nav>
+  <div class="hr">
+    <span class="clk" id="clk">--:--:--</span>
+    <div class="fg"><span class="live-dot blink"></span><span class="live-lbl">LIVE</span></div>
+    <button class="tog" onclick="tgl()" id="tog"><div class="knob" id="knob">🌙</div></button>
+  </div>
+</header>
+
+<main>
+
+<!-- LIVE MAP -->
+<div class="tab on" id="t-map">
+  <div class="fb" style="margin-bottom:18px;align-items:flex-start">
+    <h1 style="font-weight:900;font-size:28px;color:var(--text);letter-spacing:-.5px">Live <span style="color:var(--accent)">Zone Map</span></h1>
+    <div class="fg">
+      <button class="btn bm" id="hbtn" onclick="th()" style="font-size:11px">🌡 HEATMAP OFF</button>
+      <button class="btn bc" style="font-size:12px">⚑ REPORT</button>
+    </div>
+  </div>
+  <div class="strip">
+    <div class="sc2" style="border-top-color:color-mix(in srgb,var(--info) 55%,transparent);border-color:color-mix(in srgb,var(--info) 20%,transparent)"><span class="sc2-l">Zones</span><span class="sc2-v" style="color:var(--info)">5</span></div>
+    <div class="sc2" style="border-top-color:color-mix(in srgb,var(--user) 55%,transparent);border-color:color-mix(in srgb,var(--user) 20%,transparent)"><span class="sc2-l">GPS Live</span><span class="sc2-v" style="color:var(--user)">3</span></div>
+    <div class="sc2" style="border-top-color:color-mix(in srgb,var(--crit) 55%,transparent);border-color:color-mix(in srgb,var(--crit) 20%,transparent)"><span class="sc2-l">Critical</span><span class="sc2-v" style="color:var(--crit)">1</span></div>
+    <div class="sc2" style="border-top-color:color-mix(in srgb,var(--warn) 55%,transparent);border-color:color-mix(in srgb,var(--warn) 20%,transparent)"><span class="sc2-l">Incidents</span><span class="sc2-v" style="color:var(--warn)">2</span></div>
+    <div class="sc2" style="border-top-color:color-mix(in srgb,var(--safe) 55%,transparent);border-color:color-mix(in srgb,var(--safe) 20%,transparent)"><span class="sc2-l">Avg Density</span><span class="sc2-v" style="color:var(--safe)">64%</span></div>
+  </div>
+  <div class="map-wrap">
+    <div class="map-box">
+      <div class="map-grid-bg"></div>
+      <div class="map-draw-hint">
+        <span style="color:var(--accent);font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:1px">✏ DRAW</span>
+        <span style="color:var(--muted);font-size:11px">Use toolbar · Polygon or Circle</span>
+      </div>
+      <!-- Zones -->
+      <div class="zcirc" style="width:130px;height:130px;left:18%;top:22%;background:color-mix(in srgb,var(--safe) 18%,transparent);border:2px solid var(--safe);color:var(--safe)"><div style="text-align:center"><div>👥 312</div><div style="font-size:9px;opacity:.8">SAFE</div></div></div>
+      <div class="zlbl" style="left:calc(18% + 28px);top:calc(22% + 138px);color:var(--safe)">Main Entrance</div>
+      <div class="zcirc" style="width:110px;height:110px;left:42%;top:16%;background:color-mix(in srgb,var(--warn) 18%,transparent);border:2px solid var(--warn);color:var(--warn)"><div style="text-align:center"><div>👥 748</div><div style="font-size:9px;opacity:.8">WARNING</div></div></div>
+      <div class="zlbl" style="left:calc(42% + 14px);top:calc(16% + 118px);color:var(--warn)">VIP Area</div>
+      <div class="zcirc" style="width:150px;height:150px;left:58%;top:28%;background:color-mix(in srgb,var(--crit) 22%,transparent);border:3px dashed var(--crit);color:var(--crit);animation:blink 1.2s ease-in-out infinite"><div style="text-align:center"><div>👥 1,920</div><div style="font-size:9px;opacity:.8">CRITICAL</div></div></div>
+      <div class="zlbl" style="left:calc(58% + 22px);top:calc(28% + 158px);color:var(--crit)">North Gate ⚠</div>
+      <div class="zcirc" style="width:100px;height:100px;left:22%;top:55%;background:color-mix(in srgb,var(--safe) 14%,transparent);border:2px solid var(--safe);color:var(--safe)"><div style="text-align:center"><div>👥 189</div><div style="font-size:9px;opacity:.8">SAFE</div></div></div>
+      <div class="zcirc" style="width:90px;height:90px;left:70%;top:58%;background:color-mix(in srgb,var(--safe) 14%,transparent);border:2px solid var(--safe);color:var(--safe)"><div style="text-align:center"><div>👥 421</div><div style="font-size:9px;opacity:.8">SAFE</div></div></div>
+      <!-- Users -->
+      <div class="udot" style="left:26%;top:36%;background:var(--safe)" title="Ravi Kumar"></div>
+      <div class="udot" style="left:48%;top:46%;background:var(--user)" title="Outside"></div>
+      <div class="udot" style="left:65%;top:63%;background:var(--safe)" title="Priya S"></div>
+      <!-- Incident -->
+      <div style="position:absolute;left:61%;top:27%;font-size:22px;cursor:pointer;animation:blink 1.4s ease-in-out infinite" title="STAMPEDE">⚠️</div>
+      <!-- Legend -->
+      <div style="position:absolute;bottom:16px;left:16px;z-index:5;background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:12px 14px;box-shadow:var(--sh)">
+        <div style="font-size:9px;color:var(--muted);letter-spacing:2.5px;margin-bottom:9px;font-weight:600;text-transform:uppercase">Legend</div>
+        <div class="fg" style="margin-bottom:5px;gap:8px"><div style="width:9px;height:9px;border-radius:50%;background:var(--safe);box-shadow:0 0 6px var(--safe);flex-shrink:0"></div><span style="font-size:10px;color:var(--sub);font-weight:600">SAFE</span></div>
+        <div class="fg" style="margin-bottom:5px;gap:8px"><div style="width:9px;height:9px;border-radius:50%;background:var(--warn);box-shadow:0 0 6px var(--warn);flex-shrink:0"></div><span style="font-size:10px;color:var(--sub);font-weight:600">WARNING</span></div>
+        <div class="fg" style="margin-bottom:5px;gap:8px"><div style="width:9px;height:9px;border-radius:50%;background:var(--crit);box-shadow:0 0 6px var(--crit);flex-shrink:0"></div><span style="font-size:10px;color:var(--sub);font-weight:600">CRITICAL</span></div>
+        <div style="border-top:1px solid var(--border);margin:8px 0"></div>
+        <div class="fg" style="margin-bottom:4px;gap:8px"><div style="width:9px;height:9px;border-radius:50%;background:var(--user);box-shadow:0 0 6px var(--user);flex-shrink:0"></div><span style="font-size:10px;color:var(--sub);font-weight:600">GPS USER</span></div>
+        <div class="fg" style="gap:8px"><span style="font-size:12px">⚠️</span><span style="font-size:10px;color:var(--sub);font-weight:600">INCIDENT</span></div>
+      </div>
+    </div>
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sb-hdr">5 Zones · 3 Live</div>
+      <div id="sbrows"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="tab" id="t-dash">
+  <div class="sh"><h1>Operations <span>Dashboard</span></h1></div>
+  <div class="sc-grid" id="scgrid"></div>
+  <div id="dzones"></div>
+</div>
+
+<!-- CAMERAS -->
+<div class="tab" id="t-cam">
+  <div class="sh">
+    <h1>Camera <span>Feeds</span></h1>
+    <div class="fg"><span style="font-size:12px;color:var(--muted)">YOLOv8 · Auto-counting</span><span class="badge" style="background:color-mix(in srgb,var(--safe) 15%,transparent);color:var(--safe);border:1.5px solid color-mix(in srgb,var(--safe) 44%,transparent)">● 4 LIVE</span></div>
+  </div>
+  <div class="hint">📷 Cameras count people automatically using <strong style="color:var(--accent)">YOLOv8</strong> and push counts every 3 seconds. Run <code style="background:var(--inp);padding:2px 7px;border-radius:5px;color:var(--warn)">python camera_counter.py</code> to start.</div>
+  <div class="g2" id="camgrid"></div>
+</div>
+
+<!-- TRACKING -->
+<div class="tab" id="t-gps">
+  <div class="sh"><h1>GPS <span>Tracking</span></h1></div>
+  <div style="background:color-mix(in srgb,var(--accent) 8%,transparent);border:1.5px solid color-mix(in srgb,var(--accent) 33%,transparent);border-radius:16px;padding:18px 22px;margin-bottom:26px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;box-shadow:var(--shsm)">
+    <div><div style="color:var(--accent);font-weight:900;font-size:16px;margin-bottom:5px">📡 Real-Time GPS Tracking</div><div style="color:var(--sub);font-size:13px;line-height:1.75;max-width:500px">Share the link with attendees → they open it on their phone → tap Start → their dot appears live on the map.</div></div>
+    <button class="btn ba" style="padding:11px 20px;font-size:13px;white-space:nowrap">Show Link</button>
+  </div>
+  <div style="font-weight:800;font-size:20px;color:var(--text);margin-bottom:14px">Live <span style="color:var(--accent)">Users</span></div>
+  <div class="g3" id="gpsgrid"></div>
+</div>
+
+<!-- ZONES -->
+<div class="tab" id="t-zones">
+  <div class="sh"><h1>Zone <span>Management</span></h1><button class="btn ba">→ Draw on Map</button></div>
+  <div class="hint">✏ Zones are drawn on the map using polygon or circle tools. Switch to <strong style="color:var(--accent)">Live Map</strong> to draw, edit, or resize.</div>
+  <div class="g2" id="zgrid"></div>
+</div>
+
+<!-- INCIDENTS -->
+<div class="tab" id="t-inc">
+  <div class="sh"><h1>Incident <span>Tracker</span></h1><button class="btn bw">+ Report</button></div>
+  <div class="col" id="inclist"></div>
+</div>
+
+<!-- ALERTS -->
+<div class="tab" id="t-alrt">
+  <div class="sh"><h1>Alert <span>Center</span></h1><button class="btn be">Acknowledge All</button></div>
+  <div class="col" id="alrtlist"></div>
+</div>
+
+</main>
+<script>
+const ZONES=[
+  {id:"z1",name:"Main Entrance",loc:"Gate A",shape:"Circle",area:"12,566 m²",cap:500,count:312,status:"SAFE",pct:62},
+  {id:"z2",name:"VIP Area",loc:"West Wing",shape:"Polygon",area:"8,200 m²",cap:1000,count:748,status:"WARNING",pct:75},
+  {id:"z3",name:"North Gate",loc:"Gate N",shape:"Circle",area:"17,671 m²",cap:2000,count:1920,status:"CRITICAL",pct:96},
+  {id:"z4",name:"Food Court",loc:"Central",shape:"Polygon",area:"5,400 m²",cap:300,count:189,status:"SAFE",pct:63},
+  {id:"z5",name:"Stage Area",loc:"Main Stage",shape:"Circle",area:"7,854 m²",cap:800,count:421,status:"SAFE",pct:53},
+];
+const CAMS=[
+  {name:"Main Entrance Cam",zone:"Main Entrance",src:"Webcam 0",fps:14.2,count:312,pct:62,status:"SAFE"},
+  {name:"VIP Cam",zone:"VIP Area",src:"rtsp://192.168.1.20",fps:13.8,count:748,pct:75,status:"WARNING"},
+  {name:"North Gate Cam",zone:"North Gate",src:"rtsp://192.168.1.21",fps:15.1,count:1920,pct:96,status:"CRITICAL"},
+  {name:"Stage Cam",zone:"Stage Area",src:"Webcam 1",fps:12.9,count:421,pct:53,status:"SAFE"},
+];
+const USERS=[
+  {name:"Ravi Kumar",zone:"Main Entrance",lat:17.38510,lng:78.48660,acc:8},
+  {name:"Ananya M",zone:null,lat:17.38445,lng:78.48720,acc:24},
+  {name:"Priya S",zone:"Stage Area",lat:17.38390,lng:78.48590,acc:12},
+];
+const INCS=[
+  {title:"Stampede Risk Detected",zone:"North Gate",type:"STAMPEDE",sev:"CRITICAL",status:"OPEN",desc:"Crowd surging toward exit",time:"14:32"},
+  {title:"Medical Assistance Needed",zone:"VIP Area",type:"MEDICAL",sev:"HIGH",status:"OPEN",desc:"Person collapsed near stage",time:"14:28"},
+  {title:"Overcrowding Warning",zone:"VIP Area",type:"OVERCROWDING",sev:"MEDIUM",status:"OPEN",desc:"Capacity approaching threshold",time:"14:20"},
+  {title:"Crowd Cleared",zone:"Food Court",type:"OVERCROWDING",sev:"LOW",status:"RESOLVED",desc:"Additional staff deployed",time:"13:55"},
+];
+const ALERTS=[
+  {msg:"CRITICAL: North Gate at 96% capacity",zone:"North Gate",type:"DENSITY_CRITICAL",time:"14:32"},
+  {msg:"WARNING: VIP Area at 75% capacity",zone:"VIP Area",type:"DENSITY_WARNING",time:"14:21"},
+];
+const COL={SAFE:"var(--safe)",WARNING:"var(--warn)",CRITICAL:"var(--crit)",EVACUATING:"var(--evac)"};
+const STICO={SAFE:"✓ SAFE",WARNING:"⚠ WARNING",CRITICAL:"✕ CRITICAL",EVACUATING:"↑ EVACUATING"};
+const INC_I={OVERCROWDING:"👥",MEDICAL:"🏥",FIRE:"🔥",STAMPEDE:"🚨",SECURITY:"🔒",OTHER:"⚠️"};
+const sevC=s=>s==="CRITICAL"?"var(--crit)":s==="HIGH"?"#ff6600":s==="MEDIUM"?"var(--warn)":"var(--info)";
+const sevL=s=>({LOW:"LOW",MEDIUM:"MED",HIGH:"HIGH",CRITICAL:"CRIT"}[s]||s);
+
+function db(pct,c,h=7){return`<div class="dbar" style="height:${h}px"><div class="dfill" style="width:${pct}%;background:${c};box-shadow:0 0 8px ${c}66"></div></div>`;}
+function bdg(st){const c=COL[st]||"var(--safe)";const l=STICO[st]||st;return`<span class="badge" style="background:color-mix(in srgb,${c} 15%,transparent);color:${c};border:1.5px solid color-mix(in srgb,${c} 44%,transparent)">${l}</span>`;}
+function tg(t,c,sm=false){return`<span class="tag${sm?" tagsm":""}" style="background:color-mix(in srgb,${c} 15%,transparent);color:${c};border:1.5px solid color-mix(in srgb,${c} 40%,transparent)">${t}</span>`;}
+
+function renderSidebar(){
+  document.getElementById("sbrows").innerHTML=
+    USERS.map((u,i)=>`<div class="up" style="border:1.5px solid color-mix(in srgb,var(--${u.zone?"safe":"user"}) 22%,transparent);border-left:4px solid var(--${u.zone?"safe":"user"});animation:cardIn .35s ${i*40}ms both">
+      <div class="fb"><span style="color:var(--text);font-size:12px;font-weight:700">👤 ${u.name}</span><span class="blink" style="width:6px;height:6px;border-radius:50%;background:var(--safe);display:block;box-shadow:0 0 6px var(--safe)"></span></div>
+      <div style="font-size:10px;color:${u.zone?"var(--safe)":"var(--muted)"};font-family:'JetBrains Mono',monospace">${u.zone?"📍 "+u.zone:"Outside zones"}</div>
+    </div>`).join("")+
+    ZONES.map((z,i)=>{const c=COL[z.status]||"var(--safe)";return`<div style="background:var(--card);border:1.5px solid color-mix(in srgb,${c} 20%,transparent);border-radius:12px;padding:11px 14px;box-shadow:var(--shsm);animation:cardIn .45s ${(USERS.length+i)*30}ms both">
+      <div class="fb" style="margin-bottom:7px"><div><div style="font-size:13px;font-weight:800;color:var(--text)">${z.name}</div><div style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace">${z.shape}</div></div>${tg(STICO[z.status]||z.status,c)}</div>
+      ${db(z.pct,c,5)}
+      <div class="fb" style="margin-top:5px"><span style="color:var(--muted);font-size:10px;font-family:'JetBrains Mono',monospace">${z.count}/${z.cap}</span><span style="color:${c};font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:700">${z.pct}%</span></div>
+    </div>`;}).join("")+
+    `<div style="font-size:9px;color:var(--warn);letter-spacing:2.5px;font-weight:600;padding:8px 0;border-top:1.5px solid var(--border);border-bottom:1.5px solid var(--border);text-transform:uppercase">⚑ Active Incidents</div>
+    <div style="background:var(--card);border:1.5px solid color-mix(in srgb,var(--crit) 22%,transparent);border-left:4px solid var(--crit);border-radius:12px;padding:9px 13px;box-shadow:var(--shsm)">
+      <div class="fg" style="margin-bottom:4px"><span>🚨</span><span style="color:var(--text);font-size:12px;font-weight:700">Stampede Risk</span></div>
+      <div class="fg">${tg("CRIT","var(--crit)",true)} ${tg("North Gate","var(--muted)",true)}</div>
+    </div>`;
+}
+
+function renderStatCards(){
+  const items=[
+    {ico:"◈",val:"5",lbl:"Total Zones",c:"info",delay:0},
+    {ico:"👥",val:"3,590",lbl:"People Tracked",c:"safe",delay:60,sub:"cap: 5,100"},
+    {ico:"📡",val:"3",lbl:"GPS Live",c:"user",delay:120},
+    {ico:"📊",val:"64%",lbl:"Avg Density",c:"safe",delay:180},
+    {ico:"🚨",val:"1",lbl:"Critical",c:"crit",delay:240},
+    {ico:"⚑",val:"2",lbl:"Incidents",c:"warn",delay:300},
+    {ico:"◎",val:"2",lbl:"Alerts",c:"evac",delay:360},
+  ];
+  document.getElementById("scgrid").innerHTML=items.map(s=>`<div class="sc" style="border-top:3px solid var(--${s.c});border-color:color-mix(in srgb,var(--${s.c}) 20%,transparent);animation:cardIn .45s ${s.delay}ms both">
+    <div class="sc-glow" style="background:radial-gradient(circle,color-mix(in srgb,var(--${s.c}) 12%,transparent),transparent 70%)"></div>
+    <div class="sc-ico">${s.ico}</div><div class="sc-val" style="color:var(--${s.c})">${s.val}</div>
+    <div class="sc-lbl">${s.lbl}</div>${s.sub?`<div class="sc-sub">${s.sub}</div>`:""}
+  </div>`).join("");
+}
+
+function renderDashZones(){
+  document.getElementById("dzones").innerHTML=
+    `<div style="font-weight:800;font-size:20px;color:var(--text);margin-bottom:14px">Zone <span style="color:var(--accent)">Status</span></div><div class="g2">`+
+    ZONES.map((z,i)=>{const c=COL[z.status]||"var(--safe)";return`<div class="zc" style="border:1.5px solid color-mix(in srgb,${c} 20%,transparent);border-left:4px solid ${c};animation:cardIn .45s ${i*50}ms both">
+      <div class="fb" style="margin-bottom:12px"><div><div style="font-size:14px;font-weight:800;color:var(--text)">${z.name}</div><div style="font-size:11px;color:var(--muted);margin-top:3px">📍 ${z.loc} · ${z.shape} · ${z.area}</div></div>${bdg(z.status)}</div>
+      <div style="margin-bottom:12px"><div class="fb" style="margin-bottom:6px"><span style="color:var(--muted);font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase">Density</span><span style="color:${c};font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace">${z.pct}%</span></div>${db(z.pct,c,8)}</div>
+    </div>`;}).join("")+"</div>";
+}
+
+function renderCams(){
+  document.getElementById("camgrid").innerHTML=CAMS.map((cam,i)=>{
+    const c=COL[cam.status]||"var(--safe)";
+    return`<div class="camc" style="animation:cardIn .45s ${i*60}ms both">
+      <div class="cam-prev">
+        <div class="cam-grid-bg"></div>
+        <div style="position:relative;z-index:2;text-align:center"><div style="font-size:36px;margin-bottom:8px">📷</div><div style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">${cam.src}</div></div>
+        <div style="position:absolute;border:2px solid var(--safe);border-radius:3px;width:30px;height:60px;left:20%;top:25%;pointer-events:none"></div>
+        <div style="position:absolute;border:2px solid var(--safe);border-radius:3px;width:28px;height:55px;left:38%;top:30%;pointer-events:none"></div>
+        <div style="position:absolute;border:2px solid var(--safe);border-radius:3px;width:32px;height:62px;left:60%;top:22%;pointer-events:none"></div>
+        <div class="cam-ov"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#fff;font-weight:700">👥 ${cam.count} people</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--safe)">${cam.fps} fps</span></div>
+      </div>
+      <div style="padding:14px 16px">
+        <div class="fb" style="margin-bottom:10px"><div><div style="font-size:14px;font-weight:800;color:var(--text)">${cam.name}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Zone: ${cam.zone}</div></div>${bdg(cam.status)}</div>
+        ${db(cam.pct,c,7)}
+        <div class="fb" style="margin-top:8px"><span style="color:var(--muted);font-size:10px;font-family:'JetBrains Mono',monospace">${cam.count} people · cap ${ZONES.find(z=>z.name===cam.zone)?.cap||"—"}</span><span style="color:${c};font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:700">${cam.pct}%</span></div>
+        <div style="margin-top:10px;padding:8px 10px;background:color-mix(in srgb,var(--safe) 8%,transparent);border:1px solid color-mix(in srgb,var(--safe) 30%,transparent);border-radius:8px;font-size:11px;color:var(--safe)">✓ Auto-pushing counts every 3s</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderGPS(){
+  document.getElementById("gpsgrid").innerHTML=USERS.map((u,i)=>{
+    const inZ=!!u.zone;
+    return`<div class="gpsc" style="animation:cardIn .45s ${i*60}ms both">
+      <div class="fb"><div><div style="font-size:15px;font-weight:800;color:var(--text)">👤 ${u.name}</div><div style="font-size:11px;color:${inZ?"var(--safe)":"var(--muted)"};margin-top:3px">${inZ?"📍 "+u.zone:"Outside all zones"}</div></div>
+      <div class="fg"><span class="blink" style="width:7px;height:7px;border-radius:50%;background:var(--safe);display:block;box-shadow:0 0 7px var(--safe)"></span><span style="font-size:10px;color:var(--safe);font-weight:700;letter-spacing:2px">LIVE</span></div></div>
+      <div class="gps-data"><div class="gdr"><span>LAT</span><span style="color:var(--text)">${u.lat.toFixed(5)}°</span></div><div class="gdr"><span>LNG</span><span style="color:var(--text)">${u.lng.toFixed(5)}°</span></div><div class="gdr"><span>ACC</span><span style="color:${u.acc<20?"var(--safe)":u.acc<100?"var(--warn)":"var(--crit)"}">±${u.acc} m</span></div></div>
+    </div>`;
+  }).join("");
+}
+
+function renderZones(){
+  document.getElementById("zgrid").innerHTML=ZONES.map((z,i)=>{
+    const c=COL[z.status]||"var(--safe)";
+    return`<div class="zc" style="border:1.5px solid color-mix(in srgb,${c} 20%,transparent);border-left:4px solid ${c};animation:cardIn .45s ${i*50}ms both">
+      <div class="fb" style="margin-bottom:12px"><div><div style="font-size:14px;font-weight:800;color:var(--text)">${z.name}</div><div style="font-size:11px;color:var(--muted);margin-top:3px">📍 ${z.loc} · ${z.shape} · ${z.area}</div></div>${bdg(z.status)}</div>
+      <div style="margin-bottom:12px"><div class="fb" style="margin-bottom:6px"><span style="color:var(--muted);font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase">Density</span><span style="color:${c};font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace">${z.pct}% (${z.count}/${z.cap})</span></div>${db(z.pct,c,8)}</div>
+      <div class="fg"><button class="btn ba" style="flex:1;font-size:11px;justify-content:center">UPDATE COUNT</button><button class="btn bc" style="padding:7px 11px">🗑</button></div>
+    </div>`;
+  }).join("");
+}
+
+function renderInc(){
+  document.getElementById("inclist").innerHTML=INCS.map((inc,i)=>{
+    const c=sevC(inc.sev),sc=inc.status==="OPEN"?"var(--warn)":"var(--muted)";
+    return`<div class="ir" style="border:1.5px solid color-mix(in srgb,${c} 20%,transparent);border-left:4px solid ${c};animation:cardIn .45s ${i*50}ms both">
+      <div style="flex:1;min-width:0">
+        <div class="fg" style="flex-wrap:wrap;margin-bottom:6px"><span style="font-size:20px">${INC_I[inc.type]||"⚠️"}</span><span style="color:var(--text);font-weight:800;font-size:15px">${inc.title}</span>${tg(sevL(inc.sev),c)} ${tg(inc.status,sc)}</div>
+        <div style="color:var(--muted);font-size:12px;margin-bottom:2px"><span style="color:var(--info)">◈ ${inc.zone}</span> — ${inc.desc}</div>
+        <div style="color:var(--muted);font-size:11px;font-family:'JetBrains Mono',monospace;opacity:.7">Today ${inc.time}</div>
+      </div>
+      ${inc.status==="OPEN"?`<button class="btn bs" style="white-space:nowrap;padding:9px 16px">✓ Resolve</button>`:""}
+    </div>`;
+  }).join("");
+}
+
+function renderAlerts(){
+  document.getElementById("alrtlist").innerHTML=ALERTS.map((a,i)=>{
+    const c=a.type.includes("CRITICAL")?"var(--crit)":"var(--warn)";
+    return`<div class="ar" style="border:1.5px solid color-mix(in srgb,${c} 18%,transparent);border-left:4px solid ${c};animation:cardIn .45s ${i*40}ms both">
+      <div style="flex:1"><div class="fg" style="margin-bottom:4px"><div style="width:9px;height:9px;border-radius:50%;background:${c};box-shadow:0 0 8px ${c};flex-shrink:0"></div><span style="color:var(--text);font-size:14px;font-weight:700">${a.msg}</span></div><div style="color:var(--muted);font-size:11px;font-family:'JetBrains Mono',monospace;padding-left:19px">${a.zone} · ${a.type} · Today ${a.time}</div></div>
+      <button class="btn be" style="white-space:nowrap;padding:7px 14px">ACK</button>
+    </div>`;
+  }).join("");
+}
+
+function sw(name,btn){
+  document.querySelectorAll(".tab").forEach(p=>p.classList.remove("on"));
+  document.querySelectorAll(".nb").forEach(b=>b.classList.remove("on"));
+  document.getElementById("t-"+name).classList.add("on");
+  if(btn)btn.classList.add("on");
+}
+
+let dk=true;
+function tgl(){
+  dk=!dk;
+  document.body.classList.toggle("dk",dk);
+  document.body.classList.toggle("lm",!dk);
+  document.body.classList.toggle("scan-line",dk);
+  document.getElementById("knob").textContent=dk?"🌙":"☀️";
+}
+
+let ho=false;
+function th(){
+  ho=!ho;
+  const b=document.getElementById("hbtn");
+  if(ho){b.textContent="🌡 HEATMAP ON";b.style.background="color-mix(in srgb,var(--warn) 15%,transparent)";b.style.borderColor="color-mix(in srgb,var(--warn) 55%,transparent)";b.style.color="var(--warn)";}
+  else{b.textContent="🌡 HEATMAP OFF";b.style.background="color-mix(in srgb,var(--muted) 10%,transparent)";b.style.borderColor="var(--border)";b.style.color="var(--muted)";}
+}
+
+setInterval(()=>document.getElementById("clk").textContent=new Date().toLocaleTimeString(),1000);
+document.getElementById("clk").textContent=new Date().toLocaleTimeString();
+
+// Simulate live count updates
+setInterval(()=>{
+  ZONES.forEach(z=>{
+    const delta=Math.floor(Math.random()*10-4);
+    z.count=Math.max(0,Math.min(z.cap,z.count+delta));
+    z.pct=Math.round(z.count/z.cap*100);
+    if(z.pct>=95)z.status="CRITICAL";
+    else if(z.pct>=75)z.status="WARNING";
+    else z.status="SAFE";
+  });
+  CAMS.forEach((c,i)=>{if(ZONES[i]){c.count=ZONES[i].count;c.pct=ZONES[i].pct;c.status=ZONES[i].status;}});
+  renderSidebar();
+},2500);
+
+renderSidebar();renderStatCards();renderDashZones();renderCams();renderGPS();renderZones();renderInc();renderAlerts();
+</script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>CrowdShield — Live Tracking</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#0e0e0d;color:#f0f0ec;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
+  .card{background:#1a1a18;border:1px solid #2a2a27;border-radius:18px;padding:26px;width:100%;max-width:360px;}
+  .logo{display:flex;align-items:center;gap:9px;margin-bottom:20px;}
+  .lm{width:36px;height:36px;border-radius:9px;background:#f0f0ec;color:#0e0e0d;display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .ln{font-weight:800;font-size:18px;color:#f0f0ec;}
+  .ln span{font-weight:300;opacity:.4;}
+  h2{font-size:15px;font-weight:700;color:#f0f0ec;margin-bottom:4px;}
+  p{font-size:12.5px;color:#8a8a84;margin-bottom:18px;line-height:1.5;}
+  input{width:100%;background:#131312;border:1px solid #2a2a27;border-radius:9px;padding:10px 13px;
+    color:#f0f0ec;font-size:14px;margin-bottom:12px;outline:none;font-family:inherit;}
+  input:focus{border-color:#4d9fff;}
+  .btn{border:none;cursor:pointer;font-family:inherit;font-weight:700;border-radius:10px;
+    padding:12px 20px;font-size:14px;width:100%;transition:all .15s;margin-bottom:10px;}
+  .btn-start{background:#34c472;color:#0a1e12;}
+  .btn-start:hover{filter:brightness(1.1);}
+  .btn-stop{background:#222220;color:#f03e5e;border:1px solid #2a2a27;}
+  .btn-sos{background:#f03e5e;color:#fff;animation:sosGlow .9s ease-in-out infinite;}
+  .btn-sos:hover{filter:brightness(1.1);}
+  @keyframes sosGlow{0%,100%{box-shadow:0 0 0 0 #f03e5e44}50%{box-shadow:0 0 18px 5px #f03e5e44}}
+  .status{text-align:center;padding:13px;border-radius:10px;margin-bottom:12px;font-size:13px;font-weight:600;}
+  .st-idle{background:#131312;color:#8a8a84;}
+  .st-live{background:#0a1e12;color:#34c472;border:1px solid #34c47233;}
+  .st-error{background:#1e0a0e;color:#f03e5e;border:1px solid #f03e5e33;}
+  .gdata{background:#131312;border-radius:9px;padding:11px 13px;font-family:'DM Mono',monospace,monospace;font-size:11px;color:#8a8a84;line-height:2;margin-bottom:12px;}
+  .gdr{display:flex;justify-content:space-between;}
+  .zone-chip{display:inline-flex;align-items:center;gap:5px;background:#0a1e12;color:#34c472;border:1px solid #34c47233;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;margin-bottom:12px;}
+  .ping-dot{width:5px;height:5px;border-radius:50%;background:#34c472;animation:blink 1.8s ease-in-out infinite;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+  .divider{height:1px;background:#2a2a27;margin:14px 0;}
+  .sos-section h3{font-size:12px;font-weight:700;color:#8a8a84;margin-bottom:9px;text-transform:uppercase;letter-spacing:1px;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo"><div class="lm">🛡</div><div class="ln">Crowd<span>Shield</span></div></div>
+  <h2>GPS Tracking</h2>
+  <p>Share your live location with event safety staff.</p>
+  <input id="name-inp" type="text" placeholder="Your name (optional)" maxlength="40"/>
+  <div class="status st-idle" id="status">Tap Start to begin tracking</div>
+  <div class="gdata" id="gdata" style="display:none">
+    <div class="gdr"><span>LAT</span><span id="g-lat">–</span></div>
+    <div class="gdr"><span>LNG</span><span id="g-lng">–</span></div>
+    <div class="gdr"><span>ACC</span><span id="g-acc">–</span></div>
+    <div class="gdr"><span>PINGS</span><span id="g-ping">0</span></div>
+  </div>
+  <div id="zone-chip" style="display:none" class="zone-chip"><div class="ping-dot"></div><span id="zone-name">–</span></div>
+  <button class="btn btn-start" id="start-btn" onclick="start()">▶ Start Tracking</button>
+  <button class="btn btn-stop" id="stop-btn" style="display:none" onclick="stop()">■ Stop Tracking</button>
+
+  <div class="divider"/>
+  <div class="sos-section">
+    <h3>⚠ Emergency SOS</h3>
+    <button class="btn btn-sos" id="sos-btn" onclick="sendSOS()">🆘 SEND SOS ALERT</button>
+  </div>
+</div>
+
+<script>
+const API = (()=>{const h=location.hostname;return h==='localhost'?'http://localhost:8080/api':`http://${h}:8080/api`;})();
+const deviceId = localStorage.getItem('cs-device') || (()=>{const id='cs-'+Math.random().toString(36).substr(2,9);localStorage.setItem('cs-device',id);return id;})();
+let watchId=null, interval=null, pings=0, tracking=false, lastPos=null;
+
+function start(){
+  if(!navigator.geolocation){setStatus('GPS not supported on this device','error');return;}
+  tracking=true;
+  document.getElementById('start-btn').style.display='none';
+  document.getElementById('stop-btn').style.display='block';
+  document.getElementById('gdata').style.display='block';
+  setStatus('Acquiring GPS signal…','idle');
+  watchId=navigator.geolocation.watchPosition(onPos, onErr, {enableHighAccuracy:true,timeout:10000,maximumAge:3000});
+  interval=setInterval(()=>{if(lastPos)sendPing(lastPos);},5000);
+  window.addEventListener('beforeunload', stop);
+}
+
+function stop(){
+  tracking=false;
+  if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+  if(interval){clearInterval(interval);interval=null;}
+  document.getElementById('start-btn').style.display='block';
+  document.getElementById('stop-btn').style.display='none';
+  document.getElementById('gdata').style.display='none';
+  document.getElementById('zone-chip').style.display='none';
+  setStatus('Tracking stopped','idle');
+  fetch(API+'/track/'+deviceId,{method:'DELETE'}).catch(()=>{});
+}
+
+function onPos(p){
+  lastPos=p;
+  document.getElementById('g-lat').textContent=p.coords.latitude.toFixed(5)+'°';
+  document.getElementById('g-lng').textContent=p.coords.longitude.toFixed(5)+'°';
+  document.getElementById('g-acc').textContent='±'+Math.round(p.coords.accuracy||0)+' m';
+  sendPing(p);
+}
+
+function onErr(e){setStatus('GPS error: '+e.message,'error');}
+
+async function sendPing(p){
+  const name=document.getElementById('name-inp').value||null;
+  try{
+    const r=await fetch(API+'/track/ping',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({deviceId,displayName:name,latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy||0})});
+    if(!r.ok) throw new Error(r.status);
+    const data=await r.json();
+    pings++;
+    document.getElementById('g-ping').textContent=pings;
+    if(data.currentZoneName){
+      document.getElementById('zone-chip').style.display='inline-flex';
+      document.getElementById('zone-name').textContent=data.currentZoneName;
+      setStatus('📍 In zone: '+data.currentZoneName,'live');
+    } else {
+      document.getElementById('zone-chip').style.display='none';
+      setStatus('Live — outside monitored zones','live');
+    }
+  } catch(e){setStatus('Connection error — retrying…','error');}
+}
+
+async function sendSOS(){
+  const name=document.getElementById('name-inp').value||'Unknown';
+  if(!confirm('Send SOS alert to safety staff? This will notify the control room immediately.')) return;
+  document.getElementById('sos-btn').textContent='⏳ Sending…';
+  document.getElementById('sos-btn').disabled=true;
+  try{
+    const lat=lastPos?.coords?.latitude||0, lng=lastPos?.coords?.longitude||0;
+    const zoneId = document.getElementById('zone-name').textContent;
+    await fetch(API+'/incidents',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({title:'🆘 SOS from '+name,description:`SOS button pressed. Location: ${lat.toFixed(5)}, ${lng.toFixed(5)}`,type:'MEDICAL',severity:'CRITICAL',zoneName:zoneId!=='–'?zoneId:null,reportedBy:name})});
+    document.getElementById('sos-btn').textContent='✅ SOS Sent — help is on the way';
+    document.getElementById('sos-btn').style.background='#34c472';
+    document.getElementById('sos-btn').style.animation='none';
+    setTimeout(()=>{document.getElementById('sos-btn').textContent='🆘 SEND SOS ALERT';document.getElementById('sos-btn').style.background='#f03e5e';document.getElementById('sos-btn').style.animation='sosGlow .9s ease-in-out infinite';document.getElementById('sos-btn').disabled=false;},6000);
+  } catch(e){
+    document.getElementById('sos-btn').textContent='❌ Failed — try again';
+    document.getElementById('sos-btn').disabled=false;
+  }
+}
+
+function setStatus(msg,type){
+  const el=document.getElementById('status');
+  el.className='status st-'+type;
+  el.textContent=msg;
+}
+</script>
+</body>
+</html>

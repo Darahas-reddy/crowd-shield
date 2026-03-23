@@ -1,0 +1,50 @@
+{
+  "_comment": "CrowdShield Camera Counter - Config File",
+  "_help": "Get zone IDs from the CrowdShield dashboard → Zones tab",
+
+  "crowdshield_api": "http://localhost:8080/api",
+
+  "push_interval_seconds": 3,
+
+  "model": "yolov8n.pt",
+  "_model_options": {
+    "yolov8n.pt": "Nano  - fastest, lower accuracy, good for webcams",
+    "yolov8s.pt": "Small - good balance of speed/accuracy",
+    "yolov8m.pt": "Medium - better accuracy, needs a decent GPU"
+  },
+
+  "confidence_threshold": 0.45,
+
+  "show_preview": true,
+
+  "cameras": [
+    {
+      "_example": "USB/built-in webcam",
+      "name": "Main Entrance",
+      "source": 0,
+      "zone_id": "REPLACE_WITH_ZONE_ID",
+      "roi": null
+    },
+    {
+      "_example": "IP camera via RTSP (most CCTV cameras)",
+      "name": "North Gate",
+      "source": "rtsp://admin:password@192.168.1.20:554/stream1",
+      "zone_id": "REPLACE_WITH_ZONE_ID",
+      "roi": null
+    },
+    {
+      "_example": "IP camera HTTP stream",
+      "name": "South Plaza",
+      "source": "http://192.168.1.21:8080/video",
+      "zone_id": "REPLACE_WITH_ZONE_ID",
+      "roi": [0, 100, 1280, 620]
+    },
+    {
+      "_example": "Second USB webcam",
+      "name": "VIP Area",
+      "source": 1,
+      "zone_id": "REPLACE_WITH_ZONE_ID",
+      "roi": null
+    }
+  ]
+}
